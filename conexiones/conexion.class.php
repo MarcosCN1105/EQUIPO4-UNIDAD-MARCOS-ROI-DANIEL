@@ -6,7 +6,7 @@ class Conexion
     private $host = 'localhost';
     private $usuario = 'root';
     private $password = 'root';
-    private $basedatos = 'DWES_Coches';
+    private $basedatos = 'dwes_coches';
 
     private function __construct()
     {
