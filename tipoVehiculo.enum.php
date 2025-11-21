@@ -15,5 +15,4 @@ enum TipoVehiculo: string {
     case Superdeportivo = 'Superdeportivo';
     case Limusina = 'Limusina';
 }
-
 ?>
