@@ -1,4 +1,12 @@
 <?php
+session_start();
+
+// Redirigir al login si no está autenticado
+if (!isset($_SESSION['usuario_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
 require_once 'conexion.class.php';
 require_once 'cochesDao.class.php';
 
@@ -13,14 +21,15 @@ $tipoVehiculo = null;
 $puntuacionMedia = 0;
 $mostrarResultados = false;
 
+// Cargar modelos si hay una marca seleccionada
+$marcaIdSeleccionada = $_POST['marca_id'] ?? '';
+if ($marcaIdSeleccionada) {
+    $modelos = $cochesDao->getModelos((int)$marcaIdSeleccionada);
+}
+
 // Solo procesar cuando se envíe el formulario con el botón buscar
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
-    if ($_POST['marca_id'] ?? false) {
-        $marcaId = (int)$_POST['marca_id'];
-        $modelos = $cochesDao->getModelos($marcaId);
-    }
-
-    if ($_POST['modelo_id'] ?? false) {
+    if ($_POST['marca_id'] ?? false && $_POST['modelo_id'] ?? false) {
         $modeloId = (int)$_POST['modelo_id'];
         $modeloSeleccionado = $cochesDao->getModeloCompleto($modeloId);
         $valoraciones = $cochesDao->getValoracionesPorModelo($modeloId);
@@ -29,6 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
         $puntuacionMedia = $cochesDao->getPuntuacionMedia($modeloId);
         $mostrarResultados = true;
     }
+}
+
+// Redirigir para quitar el parámetro success después de mostrarlo
+if (isset($_GET['success'])) {
+    // Guardar en sesión que debemos mostrar el mensaje
+    $_SESSION['mostrar_exito'] = true;
+    // Redirigir sin el parámetro
+    header('Location: index.php');
+    exit;
 }
 ?>
 
@@ -63,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
             text-align: center;
             margin-bottom: 40px;
             color: white;
+            position: relative;
         }
 
         .header h1 {
@@ -135,13 +154,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
         .btn-buscar:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-buscar:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
 
         .modelo-info {
@@ -301,6 +313,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
             -webkit-text-fill-color: transparent;
         }
 
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            text-align: right;
+        }
+
+        .user-info .welcome {
+            font-size: 0.9rem;
+        }
+
+        .user-info .logout {
+            color: white;
+            font-size: 0.8rem;
+            text-decoration: none;
+            opacity: 0.8;
+            margin-left: 15px;
+        }
+
+        .user-info .logout:hover {
+            opacity: 1;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            opacity: 1;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -323,6 +377,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
                 align-items: flex-start;
                 gap: 10px;
             }
+            
+            .user-info {
+                position: static;
+                text-align: center;
+                margin-top: 15px;
+            }
+            
+            .nav-links {
+                justify-content: center;
+            }
         }
 
         .success-message {
@@ -333,6 +397,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
             margin-bottom: 20px;
             text-align: center;
             animation: slideIn 0.5s ease;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #feb2b2;
+            animation: slideIn 0.5s ease;
+        }
+
+        .info-message {
+            background: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .info-message h4 {
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .info-message p {
+            color: #718096;
+            margin-bottom: 15px;
         }
 
         @keyframes slideIn {
@@ -367,6 +460,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
             }
         }
     </style>
+    
+    <?php if (isset($_SESSION['mostrar_exito']) && $_SESSION['mostrar_exito']): ?>
+        <!-- Recargar la página después de 3 segundos para quitar el mensaje -->
+        <meta http-equiv="refresh" content="3;url=index.php">
+        <?php $_SESSION['mostrar_exito'] = false; ?>
+    <?php endif; ?>
 </head>
 <body>
     <div class="container">
@@ -374,21 +473,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
             <div class="logo">CarReviews</div>
             <h1>Descubre y Comparte Valoraciones</h1>
             <p>Encuentra el coche perfecto basado en experiencias reales</p>
+            
+            <div class="user-info">
+                <div class="welcome">Hola, <strong><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></strong></div>
+                <div class="nav-links">
+                    <a href="perfil.php">👤 Mi Perfil</a>
+                    <a href="logout.php">🚪 Cerrar sesión</a>
+                </div>
+            </div>
         </div>
 
-        <?php if (isset($_GET['success'])): ?>
+        <?php if (isset($_SESSION['mostrar_exito']) && $_SESSION['mostrar_exito']): ?>
             <div class="success-message">
                 ¡Valoración agregada correctamente!
             </div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['error']) && $_GET['error'] == 'ya_valorado'): ?>
+            <div class="error-message">
+                ❌ Ya has valorado este modelo anteriormente
+            </div>
+        <?php endif; ?>
+
         <!-- Formulario de selección -->
         <div class="card">
-            <form method="post" id="form-buscar">
+            <form method="post">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="marca_id">Selecciona una marca</label>
-                        <select name="marca_id" id="marca_id">
+                        <select name="marca_id" id="marca_id" onchange="this.form.submit()">
                             <option value="">-- Elige una marca --</option>
                             <?php foreach ($marcas as $marca): ?>
                                 <option value="<?= $marca->getId() ?>" 
@@ -416,7 +529,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
                     </div>
                 </div>
                 
-                <button type="submit" name="buscar" class="btn-buscar" id="btn-buscar" disabled>
+                <button type="submit" name="buscar" class="btn-buscar">
                     Buscar Valoraciones
                 </button>
             </form>
@@ -452,7 +565,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
                     <?php endif; ?>
                 </div>
 
-                
                 <div class="puntuacion-media">
                     <div class="puntuacion-numero"><?= $puntuacionMedia ?></div>
                     <div class="estrellas">
@@ -499,43 +611,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
             <!-- Formulario para agregar valoración -->
             <div class="form-valoracion">
                 <h3>Agregar tu valoración</h3>
-                <form method="post" action="agregar_valoracion.php">
-                    <input type="hidden" name="modelo_id" value="<?= $modeloSeleccionado->getId() ?>">
-                    
-                    <div class="form-group">
-                        <label for="usuario_id">Selecciona tu usuario</label>
-                        <select name="usuario_id" id="usuario_id" required>
-                            <?php 
-                            $usuarios = $cochesDao->getUsuarios();
-                            foreach ($usuarios as $usuario): ?>
-                                <option value="<?= $usuario->getId() ?>"><?= htmlspecialchars($usuario->getNombre()) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                
+                <?php
+                $yaValorado = $cochesDao->usuarioYaValoroModelo($_SESSION['usuario_id'], $modeloSeleccionado->getId());
+                $valoracionExistente = $cochesDao->getValoracionUsuarioModelo($_SESSION['usuario_id'], $modeloSeleccionado->getId());
+                
+                if ($yaValorado && $valoracionExistente): ?>
+                    <div class="info-message">
+                        <h4>✅ Ya has valorado este modelo</h4>
+                        <p>
+                            Tu puntuación: <?= str_repeat('★', $valoracionExistente->getPuntuacion()) ?><?= str_repeat('☆', 10 - $valoracionExistente->getPuntuacion()) ?>
+                            (<?= $valoracionExistente->getPuntuacion() ?>/10)
+                        </p>
+                        <?php if ($valoracionExistente->getComentario()): ?>
+                            <p style="color: #4a5568; font-style: italic;">
+                                "<?= htmlspecialchars($valoracionExistente->getComentario()) ?>"
+                            </p>
+                        <?php endif; ?>
+                        <div style="margin-top: 15px;">
+                            <a href="perfil.php" style="display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-right: 10px;">
+                                Ver mis valoraciones
+                            </a>
+                            <a href="editar_valoracion.php?id=<?= $valoracionExistente->getId() ?>" style="display: inline-block; padding: 10px 20px; background: #4299e1; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                                Editar valoración
+                            </a>
+                        </div>
                     </div>
+                <?php else: ?>
+                    <form method="post" action="agregar_valoracion.php">
+                        <input type="hidden" name="modelo_id" value="<?= $modeloSeleccionado->getId() ?>">
+                        
+                        <div class="form-group">
+                            <label for="puntuacion">Puntuación (1-10)</label>
+                            <input type="number" name="puntuacion" id="puntuacion" min="1" max="10" required 
+                                   placeholder="Escribe una puntuación del 1 al 10">
+                        </div>
 
-                    <div class="form-group">
-                        <label for="puntuacion">Puntuación (1-10)</label>
-                        <input type="number" name="puntuacion" id="puntuacion" min="1" max="10" required 
-                               placeholder="Escribe una puntuación del 1 al 10">
-                    </div>
+                        <div class="form-group">
+                            <label for="comentario">Comentario (opcional)</label>
+                            <textarea name="comentario" id="comentario" rows="4" 
+                                      placeholder="Comparte tu experiencia con este vehículo..."></textarea>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="comentario">Comentario (opcional)</label>
-                        <textarea name="comentario" id="comentario" rows="4" 
-                                  placeholder="Comparte tu experiencia con este vehículo..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn-publicar">
-                        Publicar Valoración
-                    </button>
-                </form>
+                        <button type="submit" class="btn-publicar">
+                            Publicar Valoración
+                        </button>
+                    </form>
+                <?php endif; ?>
             </div>
-        <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+        <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])): ?>
             <div class="card">
                 <div class="empty-state">
-                    <div class="icon">🔍</div>
-                    <h3 style="color: #4a5568; margin-bottom: 10px;">Selecciona un modelo</h3>
-                    <p style="color: #718096;">Por favor, elige una marca y un modelo para ver las valoraciones</p>
+                    <div class="icon">⚠️</div>
+                    <h3 style="color: #4a5568; margin-bottom: 10px;">Faltan datos</h3>
+                    <p style="color: #718096;">Por favor, selecciona tanto una marca como un modelo para ver las valoraciones</p>
                 </div>
             </div>
         <?php else: ?>
@@ -548,80 +677,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['buscar'])) {
             </div>
         <?php endif; ?>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const marcaSelect = document.getElementById('marca_id');
-            const modeloSelect = document.getElementById('modelo_id');
-            const btnBuscar = document.getElementById('btn-buscar');
-
-            // Actualizar modelos cuando cambia la marca
-            marcaSelect.addEventListener('change', function() {
-                const marcaId = this.value;
-                
-                if (marcaId) {
-                    // Habilitar el select de modelos
-                    modeloSelect.disabled = false;
-                    
-                    // Cargar modelos via AJAX
-                    fetch('get_modelos.php?marca_id=' + marcaId)
-                        .then(response => response.json())
-                        .then(data => {
-                            modeloSelect.innerHTML = '<option value="">-- Elige un modelo --</option>';
-                            data.forEach(modelo => {
-                                const option = document.createElement('option');
-                                option.value = modelo.id;
-                                option.textContent = `${modelo.nombre} (${modelo.anno})`;
-                                modeloSelect.appendChild(option);
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                        });
-                } else {
-                    // Deshabilitar y limpiar modelos si no hay marca seleccionada
-                    modeloSelect.disabled = true;
-                    modeloSelect.innerHTML = '<option value="">-- Elige un modelo --</option>';
-                }
-                
-                updateBuscarButton();
-            });
-
-            // Actualizar estado del botón buscar
-            modeloSelect.addEventListener('change', updateBuscarButton);
-
-            function updateBuscarButton() {
-                if (marcaSelect.value && modeloSelect.value) {
-                    btnBuscar.disabled = false;
-                } else {
-                    btnBuscar.disabled = true;
-                }
-            }
-
-            // Efectos de hover mejorados
-            const cards = document.querySelectorAll('.card, .valoracion-card');
-            cards.forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transition = 'all 0.3s ease';
-                });
-            });
-
-            // Animación para el formulario de valoración
-            const formValoracion = document.querySelector('.form-valoracion');
-            if (formValoracion) {
-                formValoracion.style.opacity = '0';
-                formValoracion.style.transform = 'translateY(20px)';
-                
-                setTimeout(() => {
-                    formValoracion.style.transition = 'all 0.5s ease';
-                    formValoracion.style.opacity = '1';
-                    formValoracion.style.transform = 'translateY(0)';
-                }, 300);
-            }
-
-            // Inicializar estado del botón
-            updateBuscarButton();
-        });
-    </script>
 </body>
 </html>

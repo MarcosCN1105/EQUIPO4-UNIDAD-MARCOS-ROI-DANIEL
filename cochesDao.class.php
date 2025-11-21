@@ -204,4 +204,121 @@ class cochesDao
         
         return $usuarios;
     }
+
+    public function getValoracionesPorUsuario(int $usuarioId)
+{
+    $conexion = Conexion::getInstancia()->getConexion();
+    $consulta = "
+        SELECT v.*, m.nombre as modelo_nombre, mar.nombre as marca_nombre
+        FROM valoraciones v 
+        INNER JOIN modelos m ON v.modelo_id = m.id 
+        INNER JOIN marcas mar ON m.marca_id = mar.id 
+        WHERE v.usuario_id = ? 
+        ORDER BY v.fecha DESC
+    ";
+    
+    $resultado = $conexion->prepare($consulta);
+    $resultado->execute([$usuarioId]);
+    $valoraciones = [];
+    
+    while ($fila = $resultado->fetch(PDO::FETCH_OBJ)) {
+        $valoracion = new Valoracion(
+            $fila->id,
+            $fila->modelo_id,
+            $fila->usuario_id,
+            $fila->puntuacion,
+            $fila->comentario,
+            new DateTime($fila->fecha)
+        );
+        $valoraciones[] = $valoracion;
+    }
+    
+    return $valoraciones;
+}
+
+public function getMarcaPorId(int $marcaId)
+{
+    $conexion = Conexion::getInstancia()->getConexion();
+    $consulta = "SELECT * FROM marcas WHERE id = ?";
+    $resultado = $conexion->prepare($consulta);
+    $resultado->execute([$marcaId]);
+    $fila = $resultado->fetch(PDO::FETCH_OBJ);
+    
+    if ($fila) {
+        return new Marca($fila->id, $fila->nombre);
+    }
+    
+    return null;
+}
+
+public function usuarioYaValoroModelo(int $usuarioId, int $modeloId): bool
+{
+    $conexion = Conexion::getInstancia()->getConexion();
+    $consulta = "SELECT COUNT(*) as total FROM valoraciones WHERE usuario_id = ? AND modelo_id = ?";
+    $resultado = $conexion->prepare($consulta);
+    $resultado->execute([$usuarioId, $modeloId]);
+    $fila = $resultado->fetch(PDO::FETCH_OBJ);
+    
+    return $fila->total > 0;
+}
+
+public function getValoracionUsuarioModelo(int $usuarioId, int $modeloId)
+{
+    $conexion = Conexion::getInstancia()->getConexion();
+    $consulta = "SELECT * FROM valoraciones WHERE usuario_id = ? AND modelo_id = ?";
+    $resultado = $conexion->prepare($consulta);
+    $resultado->execute([$usuarioId, $modeloId]);
+    $fila = $resultado->fetch(PDO::FETCH_OBJ);
+    
+    if ($fila) {
+        return new Valoracion(
+            $fila->id,
+            $fila->modelo_id,
+            $fila->usuario_id,
+            $fila->puntuacion,
+            $fila->comentario,
+            new DateTime($fila->fecha)
+        );
+    }
+    
+    return null;
+}
+
+public function getValoracionPorId(int $valoracionId)
+{
+    $conexion = Conexion::getInstancia()->getConexion();
+    $consulta = "SELECT * FROM valoraciones WHERE id = ?";
+    $resultado = $conexion->prepare($consulta);
+    $resultado->execute([$valoracionId]);
+    $fila = $resultado->fetch(PDO::FETCH_OBJ);
+    
+    if ($fila) {
+        return new Valoracion(
+            $fila->id,
+            $fila->modelo_id,
+            $fila->usuario_id,
+            $fila->puntuacion,
+            $fila->comentario,
+            new DateTime($fila->fecha)
+        );
+    }
+    
+    return null;
+}
+
+public function actualizarValoracion(int $valoracionId, int $puntuacion, string $comentario): bool
+{
+    $conexion = Conexion::getInstancia()->getConexion();
+    $consulta = "UPDATE valoraciones SET puntuacion = ?, comentario = ?, fecha = NOW() WHERE id = ?";
+    $resultado = $conexion->prepare($consulta);
+    return $resultado->execute([$puntuacion, $comentario, $valoracionId]);
+}
+
+public function eliminarValoracion(int $valoracionId): bool
+{
+    $conexion = Conexion::getInstancia()->getConexion();
+    $consulta = "DELETE FROM valoraciones WHERE id = ?";
+    $resultado = $conexion->prepare($consulta);
+    return $resultado->execute([$valoracionId]);
+}
 }
