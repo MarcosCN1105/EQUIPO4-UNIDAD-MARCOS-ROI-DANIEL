@@ -36,7 +36,8 @@ class cochesDao
                 $fila->id,
                 $fila->marca_id,
                 $fila->nombre,
-                new DateTime($fila->anno)
+                new DateTime($fila->anno),
+                $fila->imagen_url
             );
             $modelos[] = $modelo;
         }
@@ -156,7 +157,8 @@ class cochesDao
                 $fila->id,
                 $fila->marca_id,
                 $fila->nombre,
-                new DateTime($fila->anno)
+                new DateTime($fila->anno),
+                $fila->imagen_url
             );
         }
         

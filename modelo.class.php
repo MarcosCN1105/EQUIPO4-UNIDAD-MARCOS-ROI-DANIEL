@@ -7,13 +7,15 @@ class Modelo
     private int $marcaId;
     private string $nombre;
     private DateTime $anno;   // formato 'YYYY-MM-DD'
+    private string $img;
 
-    public function __construct(int $id, int $marcaId, string $nombre, DateTime $anno)
+    public function __construct(int $id, int $marcaId, string $nombre, DateTime $anno, string $img)
     {
         $this->id = $id;
         $this->marcaId = $marcaId;
         $this->nombre = $nombre;
         $this->anno = $anno;   
+        $this->img = $img;
     }
 
     // --- Getters ---
@@ -37,6 +39,10 @@ class Modelo
         return $this->anno;
     }
 
+    public function getImg()
+    {
+        return $this->img;
+    }
 
     // --- Setters ---
     public function setId(int $id): void
@@ -59,4 +65,10 @@ class Modelo
         $this->anno = $anno;
     }
    
+    public function setImg($img)
+    {
+        $this->img = $img;
+
+        return $this;
+    }
 }

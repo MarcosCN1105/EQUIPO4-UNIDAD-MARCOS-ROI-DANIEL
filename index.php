@@ -454,6 +454,17 @@ if (isset($_GET['success'])) {
             gap: 20px;
         }
 
+        #imagen {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 15px;
+            display: block;
+            margin: 20px auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -509,6 +520,12 @@ if (isset($_GET['success'])) {
                                     <?= htmlspecialchars($marca->getNombre()) ?>
                                 </option>
                             <?php endforeach; ?>
+                            <?php
+                                // Asignar la marca seleccionada a la sesión SOLO si se eligió
+                                if (isset($_POST['marca_id']) && $_POST['marca_id'] == $marca->getId()) {
+                                    $_SESSION["marcaSeleccionada"] = $marca->getNombre();
+                                }
+                            ?>
                         </select>
                     </div>
 
@@ -538,8 +555,8 @@ if (isset($_GET['success'])) {
         <!-- Información del modelo seleccionado -->
         <?php if ($mostrarResultados && $modeloSeleccionado): ?>
             <div class="modelo-info">
-                <h2><?= htmlspecialchars($modeloSeleccionado->getNombre()) ?></h2>
-                
+                <h2><?= htmlspecialchars($_SESSION["marcaSeleccionada"]." ".$modeloSeleccionado->getNombre()) ?></h2>
+                <?php echo "<img src='".$modeloSeleccionado->getImg()."' alt='' id='imagen'>";?>
                 <div class="modelo-details">
                     <div class="detail-item">
                         <strong>Año</strong>
