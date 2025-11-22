@@ -133,7 +133,15 @@ class cochesDao
         $stmt->execute([$modeloId]);
         $valoraciones = [];
         while ($fila = $stmt->fetch(PDO::FETCH_OBJ)) {
-            $valoraciones[] = new Valoracion($fila->id, $fila->modelo_id, $fila->usuario_id, $fila->puntuacion, $fila->comentario, new DateTime($fila->fecha));
+            $valoraciones[] = new Valoracion(
+                $fila->id, 
+                $fila->modelo_id, 
+                $fila->usuario_id, 
+                $fila->puntuacion, 
+                $fila->comentario, 
+                new DateTime($fila->fecha),
+                $fila->usuario_nombre  // Pasar el nombre del usuario
+            );
         }
         return $valoraciones;
     }
@@ -142,10 +150,11 @@ class cochesDao
     {
         $conexion = Conexion::getInstancia()->getConexion();
         $consulta = "
-            SELECT v.*, m.nombre as modelo_nombre, mar.nombre as marca_nombre
+            SELECT v.*, m.nombre as modelo_nombre, mar.nombre as marca_nombre, u.nombre as usuario_nombre
             FROM valoraciones v
             INNER JOIN modelos m ON v.modelo_id = m.id
             INNER JOIN marcas mar ON m.marca_id = mar.id
+            INNER JOIN usuarios u ON v.usuario_id = u.id
             WHERE v.usuario_id = ?
             ORDER BY v.fecha DESC
         ";
@@ -153,7 +162,15 @@ class cochesDao
         $stmt->execute([$usuarioId]);
         $valoraciones = [];
         while ($fila = $stmt->fetch(PDO::FETCH_OBJ)) {
-            $valoraciones[] = new Valoracion($fila->id, $fila->modelo_id, $fila->usuario_id, $fila->puntuacion, $fila->comentario, new DateTime($fila->fecha));
+            $valoraciones[] = new Valoracion(
+                $fila->id, 
+                $fila->modelo_id, 
+                $fila->usuario_id, 
+                $fila->puntuacion, 
+                $fila->comentario, 
+                new DateTime($fila->fecha),
+                $fila->usuario_nombre
+            );
         }
         return $valoraciones;
     }
@@ -161,11 +178,21 @@ class cochesDao
     public function getValoracionUsuarioModelo(int $usuarioId, int $modeloId)
     {
         $conexion = Conexion::getInstancia()->getConexion();
-        $consulta = "SELECT * FROM valoraciones WHERE usuario_id = ? AND modelo_id = ?";
+        $consulta = "SELECT v.*, u.nombre as usuario_nombre FROM valoraciones v 
+                 INNER JOIN usuarios u ON v.usuario_id = u.id 
+                 WHERE v.usuario_id = ? AND v.modelo_id = ?";
         $stmt = $conexion->prepare($consulta);
         $stmt->execute([$usuarioId, $modeloId]);
         $fila = $stmt->fetch(PDO::FETCH_OBJ);
-        return $fila ? new Valoracion($fila->id, $fila->modelo_id, $fila->usuario_id, $fila->puntuacion, $fila->comentario, new DateTime($fila->fecha)) : null;
+        return $fila ? new Valoracion(
+            $fila->id, 
+            $fila->modelo_id, 
+            $fila->usuario_id, 
+            $fila->puntuacion, 
+            $fila->comentario, 
+            new DateTime($fila->fecha),
+            $fila->usuario_nombre
+        ) : null;
     }
 
     public function usuarioYaValoroModelo(int $usuarioId, int $modeloId): bool
@@ -181,11 +208,21 @@ class cochesDao
     public function getValoracionPorId(int $valoracionId)
     {
         $conexion = Conexion::getInstancia()->getConexion();
-        $consulta = "SELECT * FROM valoraciones WHERE id = ?";
+        $consulta = "SELECT v.*, u.nombre as usuario_nombre FROM valoraciones v 
+                 INNER JOIN usuarios u ON v.usuario_id = u.id 
+                 WHERE v.id = ?";
         $stmt = $conexion->prepare($consulta);
         $stmt->execute([$valoracionId]);
         $fila = $stmt->fetch(PDO::FETCH_OBJ);
-        return $fila ? new Valoracion($fila->id, $fila->modelo_id, $fila->usuario_id, $fila->puntuacion, $fila->comentario, new DateTime($fila->fecha)) : null;
+        return $fila ? new Valoracion(
+            $fila->id, 
+            $fila->modelo_id, 
+            $fila->usuario_id, 
+            $fila->puntuacion, 
+            $fila->comentario, 
+            new DateTime($fila->fecha),
+            $fila->usuario_nombre
+        ) : null;
     }
 
     public function agregarValoracion(int $modeloId, int $usuarioId, int $puntuacion, string $comentario): bool

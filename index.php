@@ -21,10 +21,23 @@ $tipoVehiculo = null;
 $puntuacionMedia = 0;
 $mostrarResultados = false;
 
+// Inicializar marca seleccionada en sesión si no existe
+if (!isset($_SESSION['marcaSeleccionada'])) {
+    $_SESSION['marcaSeleccionada'] = '';
+}
+
 // Cargar modelos si hay una marca seleccionada
 $marcaIdSeleccionada = $_POST['marca_id'] ?? '';
 if ($marcaIdSeleccionada) {
     $modelos = $cochesDao->getModelos((int)$marcaIdSeleccionada);
+    
+    // Guardar el nombre de la marca seleccionada en sesión
+    foreach ($marcas as $marca) {
+        if ($marca->getId() == $marcaIdSeleccionada) {
+            $_SESSION['marcaSeleccionada'] = $marca->getNombre();
+            break;
+        }
+    }
 }
 
 // Solo procesar cuando se envíe el formulario con el botón buscar
@@ -238,8 +251,15 @@ if (isset($_GET['success'])) {
         .valoracion-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 15px;
+        }
+
+        .valoracion-usuario {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
         }
 
         .puntuacion-valoracion {
@@ -251,11 +271,13 @@ if (isset($_GET['success'])) {
         .fecha-valoracion {
             color: #718096;
             font-size: 0.9rem;
+            text-align: right;
         }
 
         .comentario {
             line-height: 1.6;
             color: #4a5568;
+            margin-top: 10px;
         }
 
         .form-valoracion {
@@ -386,6 +408,10 @@ if (isset($_GET['success'])) {
             
             .nav-links {
                 justify-content: center;
+            }
+            
+            .fecha-valoracion {
+                text-align: left;
             }
         }
 
@@ -520,12 +546,6 @@ if (isset($_GET['success'])) {
                                     <?= htmlspecialchars($marca->getNombre()) ?>
                                 </option>
                             <?php endforeach; ?>
-                            <?php
-                                // Asignar la marca seleccionada a la sesión SOLO si se eligió
-                                if (isset($_POST['marca_id']) && $_POST['marca_id'] == $marca->getId()) {
-                                    $_SESSION["marcaSeleccionada"] = $marca->getNombre();
-                                }
-                            ?>
                         </select>
                     </div>
 
@@ -555,8 +575,10 @@ if (isset($_GET['success'])) {
         <!-- Información del modelo seleccionado -->
         <?php if ($mostrarResultados && $modeloSeleccionado): ?>
             <div class="modelo-info">
-                <h2><?= htmlspecialchars($_SESSION["marcaSeleccionada"]." ".$modeloSeleccionado->getNombre()) ?></h2>
-                <?php echo "<img src='".$modeloSeleccionado->getImg()."' alt='' id='imagen'>";?>
+                <h2><?= htmlspecialchars($_SESSION["marcaSeleccionada"] . " " . $modeloSeleccionado->getNombre()) ?></h2>
+                <?php if ($modeloSeleccionado->getImg()): ?>
+                    <img src="<?= htmlspecialchars($modeloSeleccionado->getImg()) ?>" alt="<?= htmlspecialchars($modeloSeleccionado->getNombre()) ?>" id="imagen">
+                <?php endif; ?>
                 <div class="modelo-details">
                     <div class="detail-item">
                         <strong>Año</strong>
@@ -583,7 +605,7 @@ if (isset($_GET['success'])) {
                 </div>
 
                 <div class="puntuacion-media">
-                    <div class="puntuacion-numero"><?= $puntuacionMedia ?></div>
+                    <div class="puntuacion-numero"><?= number_format($puntuacionMedia, 1) ?></div>
                     <div class="estrellas">
                         <?= str_repeat('★', round($puntuacionMedia)) ?><?= str_repeat('☆', 10 - round($puntuacionMedia)) ?>
                     </div>
@@ -606,11 +628,16 @@ if (isset($_GET['success'])) {
                         <?php foreach ($valoraciones as $valoracion): ?>
                             <div class="valoracion-card">
                                 <div class="valoracion-header">
-                                    <div class="puntuacion-valoracion">
-                                        <?= str_repeat('★', $valoracion->getPuntuacion()) ?><?= str_repeat('☆', 10 - $valoracion->getPuntuacion()) ?>
-                                        <span style="font-size: 1rem; color: #718096; margin-left: 10px;">
-                                            (<?= $valoracion->getPuntuacion() ?>/10)
-                                        </span>
+                                    <div>
+                                        <div class="valoracion-usuario">
+                                            <?= htmlspecialchars($valoracion->getUsuarioNombre() ?? 'Usuario') ?>
+                                        </div>
+                                        <div class="puntuacion-valoracion">
+                                            <?= str_repeat('★', $valoracion->getPuntuacion()) ?><?= str_repeat('☆', 10 - $valoracion->getPuntuacion()) ?>
+                                            <span style="font-size: 1rem; color: #718096; margin-left: 10px;">
+                                                (<?= $valoracion->getPuntuacion() ?>/10)
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="fecha-valoracion">
                                         <?= $valoracion->getFecha()->format('d/m/Y H:i') ?>

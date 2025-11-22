@@ -6,14 +6,16 @@ class Valoracion {
     private int $puntuacion;
     private ?string $comentario;
     private DateTime $fecha;
+    private ?string $usuarioNombre; // Nueva propiedad
 
-    public function __construct(int $id, int $modeloId, int $usuarioId, int $puntuacion, ?string $comentario, DateTime $fecha) {
+    public function __construct(int $id, int $modeloId, int $usuarioId, int $puntuacion, ?string $comentario, DateTime $fecha, ?string $usuarioNombre = null) {
         $this->id = $id;
         $this->modeloId = $modeloId;
         $this->usuarioId = $usuarioId;
         $this->puntuacion = $puntuacion;
         $this->comentario = $comentario;
         $this->fecha = $fecha;
+        $this->usuarioNombre = $usuarioNombre;
     }
 
     // Getters
@@ -41,6 +43,10 @@ class Valoracion {
         return $this->fecha;
     }
 
+    public function getUsuarioNombre(): ?string {
+        return $this->usuarioNombre;
+    }
+
     // Setters
     public function setId(int $id): void {
         $this->id = $id;
@@ -64,6 +70,10 @@ class Valoracion {
 
     public function setFecha(DateTime $fecha): void {
         $this->fecha = $fecha;
+    }
+
+    public function setUsuarioNombre(?string $usuarioNombre): void {
+        $this->usuarioNombre = $usuarioNombre;
     }
 }
 ?>
