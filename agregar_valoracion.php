@@ -1,37 +1,37 @@
 <?php
 session_start();
-
-// Verificar que el usuario está logueado
-if (!isset($_SESSION['usuario_id'])) {
-    header('Location: login.php');
-    exit;
-}
-
-require_once 'conexion.class.php';
 require_once 'cochesDao.class.php';
 
-if ($_POST['modelo_id'] && $_POST['puntuacion']) {
-    $cochesDao = new cochesDao();
-    
-    $modeloId = (int)$_POST['modelo_id'];
-    $usuarioId = (int)$_SESSION['usuario_id'];
-    $puntuacion = (int)$_POST['puntuacion'];
-    $comentario = $_POST['comentario'] ?? '';
-    
-    // Verificar si ya valoró este modelo
-    if ($cochesDao->usuarioYaValoroModelo($usuarioId, $modeloId)) {
-        header('Location: index.php?error=ya_valorado');
-        exit;
-    }
-    
-    $exito = $cochesDao->agregarValoracion($modeloId, $usuarioId, $puntuacion, $comentario);
-    
-    if ($exito) {
-        header('Location: index.php?success=1');
-    } else {
-        header('Location: index.php?error=1');
-    }
+$cochesDao = new cochesDao();
+$usuarioId = $_SESSION['usuario_id'] ?? null;
+
+if (!$usuarioId) {
+    header("Location: login.php");
     exit;
 }
 
-header('Location: index.php');
+// Recoger datos del formulario
+$modeloId = $_POST['modelo_id'] ?? null;
+$puntuacion = $_POST['puntuacion'] ?? null;
+$comentario = $_POST['comentario'] ?? '';
+
+if ($modeloId && $puntuacion !== null) {
+    // Crear sesión "crear" si no existe
+    if (!isset($_SESSION["crear"])) {
+        $_SESSION["crear"] = [];
+    }
+
+    // Añadir valoracion a la sesión
+    $_SESSION["crear"][] = [
+        "id_temp" => uniqid(), // identificador temporal
+        "usuario_id" => $usuarioId,
+        "modelo_id" => $modeloId,
+        "puntuacion" => $puntuacion,
+        "comentario" => $comentario,
+        "fecha" => date("Y-m-d H:i:s")
+    ];
+
+    header("Location: perfil.php?success=valoracion_guardada_sesion");
+    exit;
+}
+header("Location: perfil.php?error=datos_incompletos");
